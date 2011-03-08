@@ -87,6 +87,8 @@ static const char sccsid[] = "@(#)w.c	8.4 (Berkeley) 4/16/94";
 #include <utmp.h>
 #include <vis.h>
 
+#include <sys/types.h>
+#include <pwd.h>
 #include <GeoIP.h>
 
 #include "extern.h"
@@ -148,6 +150,8 @@ main(int argc, char *argv[])
 	char fn[MAXHOSTNAMELEN];
 	char *dot;
 	const char *country_name = NULL;
+	int restricted = 1;
+	struct passwd *pw = NULL;
 
 	(void)setlocale(LC_ALL, "");
 	use_ampm = (*nl_langinfo(T_FMT_AMPM) != '\0');
@@ -210,6 +214,11 @@ main(int argc, char *argv[])
 	if (dropgid)
 		setgid(getgid());
 
+	if (geteuid() == 0)
+		restricted = 0;
+
+	pw = getpwuid(getuid());
+
 	if ((kd = kvm_openfiles(nlistf, memf, NULL, O_RDONLY, errbuf)) == NULL)
 		errx(1, "%s", errbuf);
 
@@ -217,7 +226,7 @@ main(int argc, char *argv[])
 	if ((ut = fopen(_PATH_UTMP, "r")) == NULL)
 		err(1, "%s", _PATH_UTMP);
 
-	if (*argv)
+	if (*argv && !restricted)
 		sel_users = argv;
 
 	for (nusers = 0; fread(&utmp, sizeof(utmp), 1, ut);) {
@@ -228,6 +237,10 @@ main(int argc, char *argv[])
 		++nusers;
 		if (wcmd == 0)
 			continue;
+
+		if (restricted && strncmp(utmp.ut_name, pw->pw_name, UT_NAMESIZE))
+			continue;
+
 		if (sel_users) {
 			int usermatch;
 			char **user;

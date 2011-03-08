@@ -87,6 +87,8 @@ static const char sccsid[] = "@(#)w.c	8.4 (Berkeley) 4/16/94";
 #include <utmp.h>
 #include <vis.h>
 
+#include <GeoIP.h>
+
 #include "extern.h"
 
 struct timeval	boottime;
@@ -143,6 +145,8 @@ main(int argc, char *argv[])
 	char buf[MAXHOSTNAMELEN], errbuf[_POSIX2_LINE_MAX];
 	char fn[MAXHOSTNAMELEN];
 	char *dot;
+	GeoIP *gip;
+	const char *country_name;
 
 	(void)setlocale(LC_ALL, "");
 	use_ampm = (*nl_langinfo(T_FMT_AMPM) != '\0');
@@ -398,6 +402,18 @@ main(int argc, char *argv[])
 				(void)printf("\t\t%-9d %s\n",
 				    dkp->ki_pid, ptr);
 			}
+		}
+		{
+			GeoIP *gip;
+			const char *country_name;
+			char *p0 = (p ? strsep((char **) &(p), ":") : "");
+
+			gip = GeoIP_new(GEOIP_STANDARD);
+
+			if(NULL == (country_name = GeoIP_country_name_by_name(gip, p0)))
+				country_name = ((*p0) ? p0 : "-");
+
+			p = country_name;
 		}
 		(void)printf("%-*.*s %-*.*s %-*.*s ",
 		    UT_NAMESIZE, UT_NAMESIZE, ep->utmp.ut_name,

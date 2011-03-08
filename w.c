@@ -123,6 +123,7 @@ struct	entry {
 
 /* W_DISPHOSTSIZE should not be greater than UT_HOSTSIZE */
 #define	W_DISPHOSTSIZE	16
+#define W_DISPGEOSIZE 20
 
 static void		 pr_header(time_t *, int);
 static struct stat	*ttystat(char *, int);
@@ -274,14 +275,16 @@ main(int argc, char *argv[])
 #define HEADER_USER		"USER"
 #define HEADER_TTY		"TTY"
 #define HEADER_FROM		"FROM"
+#define HEADER_GEO		"GEO"
 #define HEADER_LOGIN_IDLE	"LOGIN@  IDLE "
 #define HEADER_WHAT		"WHAT\n"
 #define WUSED  (UT_NAMESIZE + UT_LINESIZE + W_DISPHOSTSIZE + \
 		sizeof(HEADER_LOGIN_IDLE) + 3)	/* header width incl. spaces */ 
-		(void)printf("%-*.*s %-*.*s %-*.*s  %s", 
+		(void)printf("%-*.*s %-*.*s %-*.*s %-*.*s %s",
 				UT_NAMESIZE, UT_NAMESIZE, HEADER_USER,
 				UT_LINESIZE, UT_LINESIZE, HEADER_TTY,
 				W_DISPHOSTSIZE, W_DISPHOSTSIZE, HEADER_FROM,
+				W_DISPGEOSIZE, W_DISPGEOSIZE, HEADER_GEO,
 				HEADER_LOGIN_IDLE HEADER_WHAT);
 	}
 
@@ -405,18 +408,15 @@ main(int argc, char *argv[])
 		}
 
 		country_name = geoiplookup(host_buf);
-		if (country_name)
-			p = country_name;
-		else
-			p = "-";
 
-		(void)printf("%-*.*s %-*.*s %-*.*s ",
+		(void)printf("%-*.*s %-*.*s %-*.*s %-*.*s ",
 		    UT_NAMESIZE, UT_NAMESIZE, ep->utmp.ut_name,
 		    UT_LINESIZE, UT_LINESIZE,
 		    strncmp(ep->utmp.ut_line, "tty", 3) &&
 		    strncmp(ep->utmp.ut_line, "cua", 3) ?
 		    ep->utmp.ut_line : ep->utmp.ut_line + 3,
-		    W_DISPHOSTSIZE, W_DISPHOSTSIZE, *p ? p : "-");
+		    W_DISPHOSTSIZE, W_DISPHOSTSIZE, *p ? p : "-",
+		    W_DISPGEOSIZE, W_DISPGEOSIZE, country_name ? country_name : "-");
 		t = _time_to_time32(ep->utmp.ut_time);
 		longattime = pr_attime(&t, &now);
 		longidle = pr_idle(ep->idle);
